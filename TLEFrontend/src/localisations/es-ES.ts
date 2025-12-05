@@ -1,0 +1,150 @@
+export default {
+  TrafficSignal: "Semáforo",
+  ModDefault: "Por defecto",
+  Vanilla: "Vanilla",
+  SplitPhasing: "Fase dividida",
+  ProtectedRightTurns: "Giros a la derecha protegidos",
+  ProtectedLeftTurns: "Giros a la izquierda protegidos",
+  Options: "Opciones",
+  ExclusivePedestrianPhase: "Fase peatonal exclusiva",
+  LaneDirectionTool: "Herramienta de dirección de carril (Experimental)",
+  
+  // Buttons
+  Add: "Añadir fase",
+  Back: "Volver",
+  ManualControl: "Control manual",
+  CustomPhase: "Fase personalizada",
+  CustomPhaseEditor: "Editar fases personalizadas",
+  SelectFunction: "Seleccionar función",
+  SelectFunctionDescription: "Elige una función para configurar tu red de tráfico.",
+  EditIntersectionPhases: "Editar fases de intersección",
+  IntersectionMonitor: "Monitor de intersección",
+  DashboardComingSoon: "Próximamente...",
+  
+  Close: "Cerrar",
+  Open: "Abrir",
+  Reset: "Reiniciar",
+  Save: "Guardar",
+  PleaseSave: "Por favor guarda los cambios antes de seleccionar otra intersección.",
+  PleaseSelectJunction: "Por favor selecciona una intersección",
+  GiveWayToOncomingVehicles: "Ceder el paso a vehículos en sentido contrario",
+  CustomPedestrianDurationMultiplier: "Duración de fase peatonal",
+  CustomPedestrianDurationMultiplierSuffix: "x",
+  AllowTurningOnRed: "Permitir girar en rojo",
+  CanaryBuildWarning: "Atención: estás usando una versión canary que puede contener errores. Esta versión es solo para pruebas. NO usar para juego normal.",
+  LdtMigrationNotice: "Lane Direction Tool ha sido reemplazado por el mod Traffic de krzychu124. Por favor instala el mod Traffic para transferir tu configuración automáticamente.",
+  LdtRetirementNotice: "Lane Direction Tool ha sido reemplazado por el mod Traffic de krzychu124. Gracias por usar LDT.",
+  
+  // Custom Phase Options
+  PrioritiseTrack: "Priorizar vehículos",
+  PrioritisePublicCar: "Priorizar transporte público",
+  PrioritisePedestrian: "Priorizar peatones",
+  PrioritiseBicycle: "Priorizar ciclistas",
+  
+  // Custom Phase Options - Tooltips
+  PrioritiseTrackTooltip: "Da prioridad a los carriles de vehículos normales (coches, camiones) durante esta fase",
+  PrioritisePublicCarTooltip: "Da prioridad a los carriles de transporte público (autobuses, tranvías) durante esta fase",
+  PrioritisePedestrianTooltip: "Da prioridad a los pasos de peatones durante esta fase",
+  PrioritiseBicycleTooltip: "Da prioridad a los carriles bici durante esta fase",
+  
+  // Custom Phase Adjustments
+  Adjustments: "Ajustes",
+  MinimumDuration: "Duración mín.",
+  MaximumDuration: "Duración máx.",
+  TargetDurationMultiplier: "Duración objetivo",
+  LaneOccupiedMultiplier: "Ocupación de carriles",
+  IntervalExponent: "Exponente de intervalo",
+  
+  // Custom Phase Adjustments - Tooltips
+  MinimumDurationTooltip: "Duración mínima del verde. El semáforo permanece verde al menos este tiempo, aunque haya poco tráfico.",
+  MaximumDurationTooltip: "Duración máxima del verde. Después de este tiempo, el semáforo cambia aunque haya tráfico esperando.",
+  TargetDurationMultiplierTooltip: "Afecta la duración de la fase verde. 1x = Normal, 2x = Doble duración con tráfico, 0.5x = Más corto.",
+  LaneOccupiedMultiplierTooltip: "Controla cuánto aumentan la prioridad los carriles llenos. Mayor = Los atascos se resuelven más rápido.",
+  IntervalExponentTooltip: "Configuración de equidad. Mayor = Las fases que esperaron más tiempo tienen más prioridad.",
+  
+  // Custom Phase Statistics
+  Statistics: "Estadísticas",
+  Timer: "Temporizador",
+  Priority: "Prioridad",
+  LastRun: "Último ciclo",
+  CarFlow: "Flujo de vehículos",
+  LanesOccupied: "Carriles ocupados",
+  WeightedWaiting: "Espera ponderada",
+  
+  // Custom Phase Statistics - Tooltips
+  TimerTooltip: "Temporizador actual / Duración objetivo",
+  PriorityTooltip: "Valor de prioridad actual de esta fase",
+  LastRunTooltip: "Número de turnos desde que esta fase se ejecutó por última vez",
+  CarFlowTooltip: "Flujo actual de vehículos en esta fase",
+  LanesOccupiedTooltip: "Número de carriles ocupados (vehículos, transporte, vías, peatones)",
+  WeightedWaitingTooltip: "Tiempo de espera ponderado de vehículos en esta fase",
+  
+  // Custom Phase Buttons
+  EndPhasePrematurely: "Terminar fase ahora",
+  PhaseEndRequested: "Fin de fase solicitado",
+  // Phase Copy/Paste Feature
+  SelectAll: "Seleccionar todo",
+  DeselectAll: "Deseleccionar todo",
+  CopyPhases: "Copiar fases",
+  PastePhases: "Pegar fases",
+  DeleteSelectedPhases: "Eliminar seleccionadas",
+  ClearClipboard: "Vaciar portapapeles",
+  
+  // Phase Copy/Paste Tooltips
+  SelectAllTooltip: "Seleccionar todas las fases para copiar o eliminar",
+  CopyPhasesTooltip: "Copiar fases seleccionadas al portapapeles",
+  PastePhasesTooltip: "Pegar fases desde el portapapeles",
+  DeleteSelectedPhasesTooltip: "Eliminar permanentemente las fases seleccionadas",
+  ClearClipboardTooltip: "Vaciar portapapeles para evitar pegados accidentales",
+
+  // Green Wave / Sync Groups
+  GreenWave: "Ola Verde",
+  GreenWaveButton: "Ola Verde",
+  SyncGroup: "Grupo de Sincronización",
+  NoSyncGroup: "Sin Grupo",
+  CreateNewGroup: "Crear Nuevo Grupo",
+  CycleOffset: "Desfase de Ciclo",
+  UseSyncedCycle: "Activar Sincronización",
+  TotalCycleDuration: "Duración Total del Ciclo",
+  BaseCycleDuration: "Ciclo Base",
+  IntersectionsInGroup: "Intersecciones",
+  NewGroupName: "Nuevo Grupo",
+  DeleteGroup: "Eliminar Grupo",
+  RenameGroup: "Renombrar",
+  OpenGreenWavePanel: "Abrir Ola Verde",
+  GreenWavePanelActive: "Ola Verde Activa",
+  
+  // Phase Mode
+  PhaseMode: "Modo de Fase",
+  LegacyMode: "Estándar (Prioridad)",
+  LegacyModeHint: "Siguiente fase según demanda de tráfico",
+  LegacyModeTooltip: "Las fases cambian según prioridad - vehículos y peatones esperando determinan la siguiente fase. Comportamiento predeterminado del juego.",
+  SequentialMode: "Secuencial (Orden)",
+  SequentialModeHint: "Fases 1 → 2 → 3 → 4 → 1...",
+  SequentialModeTooltip: "Las fases se ejecutan en orden: 1 → 2 → 3 → 4 → 1... Secuencia fija y predecible. Requerido para Ola Verde.",
+  GreenWaveForcesSequential: "La Ola Verde requiere modo secuencial",
+  
+  SyncSettings: "Configuración de Sincronización",
+  SyncPhase: "Fase de Sincronización",
+  SyncPhaseTooltip: "Selecciona qué fase sincronizar. Útil para carriles de giro.",
+  OffsetCalculator: "Calculadora de Desfase",
+  Distance: "Distancia",
+  Speed: "Velocidad",
+  RecommendedOffset: "Recomendado",
+  Apply: "Aplicar",
+  OwnCycle: "Ciclo Propio",
+  GroupBase: "Base del Grupo",
+  AutoFactor: "Factor Automático",
+  AutoFactorTooltip: "Proporción entre el ciclo propio y la base del grupo. Los diferentes ciclos se escalan automáticamente.",
+  Intersections: "Intersecciones",
+  NoGroupsYet: "Aún no se han creado grupos",
+  Information: "Información",
+  
+  // Green Wave Tooltips
+  GreenWaveTooltip: "Sincroniza múltiples intersecciones para un efecto de ola verde",
+  GreenWaveTooltipActive: "Sincroniza múltiples intersecciones a lo largo de una carretera para que los vehículos puedan pasar sin detenerse durante una ola verde.",
+  GreenWaveTooltipDisabled: "La Ola Verde solo está disponible cuando 'Fases Personalizadas' está habilitado para esta intersección. Selecciona primero 'Fases Personalizadas'.",
+  SyncGroupTooltip: "Selecciona un grupo de sincronización para esta intersección",
+  CycleOffsetTooltip: "Desfase en segundos del temporizador del grupo. Diferentes desfases crean la ola verde.",
+  UseSyncedCycleTooltip: "Activa la sincronización con el grupo seleccionado",
+};

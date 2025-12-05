@@ -1,0 +1,53 @@
+﻿# Build Outputs
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.rsuser
+
+# NuGet
+packages/
+*.nupkg
+
+# Node.js (Frontend)
+node_modules/
+dist/
+.cache/
+
+# Logs
+*.log
+
+# Paradox Publishing - WICHTIG! NIEMALS COMMITTEN!
+**/PublishConfiguration.xml
+**/publish_token*
+**/*secret*
+**/*credential*
+
+# OS generated
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Backup files
+*.backup
+*.backup_*
+*.bak
+*.orig
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# Local config that might contain paths
+*.local
+*.local.*
