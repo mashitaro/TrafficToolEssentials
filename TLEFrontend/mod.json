@@ -1,0 +1,9 @@
+﻿{
+  "id": "C2VM.TrafficToolEssentials",
+  "displayName": "Traffic Tool Essentials",
+  "author": "ZessonsMOD",
+  "version": "2.2.2",
+  "description": "Advanced traffic management - enhanced traffic lights and more",
+  "isCodeMod": true,
+  "dependencies": []
+}

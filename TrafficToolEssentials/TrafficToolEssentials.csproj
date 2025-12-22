@@ -1,0 +1,636 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Library</OutputType>
+        <TargetFramework>net48</TargetFramework>
+        <Configurations>Debug;Release</Configurations>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+        <AssemblyName>C2VM.TrafficToolEssentials</AssemblyName>
+        <RootNamespace>C2VM.TrafficToolEssentials</RootNamespace>
+        <Version>2.2.2</Version>
+
+        <!--The file where mod information which is required for publishing mod on PDX mods are stored-->
+        <PublishConfigurationPath>Properties\PublishConfiguration.xml</PublishConfigurationPath>
+        
+        <!-- Frontend Build Kontrolle (NEU!) -->
+        <DisableBuildFrontend Condition="'$(DisableBuildFrontend)' == ''">false</DisableBuildFrontend>
+        <CleanFrontendCache Condition="'$(CleanFrontendCache)' == ''">false</CleanFrontendCache>
+    </PropertyGroup>
+
+    <!--Imports must be after PropertyGroup block-->
+    <Import Project="$([System.Environment]::GetEnvironmentVariable('CSII_TOOLPATH', 'EnvironmentVariableTarget.User'))\Mod.props" />
+    <Import Project="$([System.Environment]::GetEnvironmentVariable('CSII_TOOLPATH', 'EnvironmentVariableTarget.User'))\Mod.targets" Condition="'$(DisablePostProcessors)' != 'true'" />
+
+    <PropertyGroup>
+        <LangVersion>12.0</LangVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Reference Include="Game">
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="cohtml.Net">
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="Colossal.Collections">
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="Colossal.Core">
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="Colossal.IO.AssetDatabase">
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="Colossal.Localization">
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="Colossal.Logging">
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="Colossal.Mathematics">
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="Colossal.PSI.Common">
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="Colossal.UI">
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="Colossal.UI.Binding">
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="Newtonsoft.Json">
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="Unity.Burst">
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="Unity.Collections">
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="Unity.Entities">
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="Unity.InputSystem">
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="Unity.Mathematics">
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="UnityEngine.CoreModule">
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="UnityEngine.ImageConversionModule">
+            <Private>false</Private>
+        </Reference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Reference Update="System">
+            <Private>false</Private>
+        </Reference>
+        <Reference Update="System.Core">
+            <Private>false</Private>
+        </Reference>
+        <Reference Update="System.Data">
+            <Private>false</Private>
+        </Reference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="$(ModPropsFile)" Link="Properties\Mod.props" />
+        <None Include="$(ModTargetsFile)" Link="Properties\Mod.targets" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Include="Resources\**\*" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\CommonLibraries\LaneSystem\LaneSystem.csproj" />
+    </ItemGroup>
+
+    <!-- =============================================================== -->
+    <!-- OPTIMIERTES FRONTEND BUILD TARGET                                -->
+    <!-- Features:                                                        -->
+    <!-- - Intelligentes npm install (nur wenn noetig)                   -->
+    <!-- - Cache-Clearing bei Bedarf                                     -->
+    <!-- - Kann komplett deaktiviert werden                              -->
+    <!-- =============================================================== -->
+    <Target Name="BuildFrontend" BeforeTargets="CoreCompile" Condition="'$(DisableBuildFrontend)' != 'true'">
+        <!-- Clean Frontend Cache (nur bei vollstaendigem Rebuild) -->
+        <Message Text="[BuildFrontend] Pruefe Frontend Cache..." Importance="high" />
+        <RemoveDir Directories="..\TLEFrontend\node_modules\.cache" Condition="'$(CleanFrontendCache)' == 'true'" />
+        <Message Text="[BuildFrontend] Cache geloescht (CleanFrontendCache=true)" Condition="'$(CleanFrontendCache)' == 'true'" Importance="high" />
+        
+        <!-- npm install nur wenn package.json neuer als node_modules -->
+        <Message Text="[BuildFrontend] Pruefe ob npm install erforderlich..." Importance="high" />
+        <Exec Command="npm install --prefer-offline --no-audit" 
+              WorkingDirectory="..\TLEFrontend\" 
+              Condition="!Exists('..\TLEFrontend\node_modules')"
+              ContinueOnError="false" />
+        <Message Text="[BuildFrontend] npm install ausgefuehrt (node_modules fehlte)" Condition="!Exists('..\TLEFrontend\node_modules')" Importance="high" />
+        
+        <!-- Build Frontend -->
+        <Message Text="[BuildFrontend] Fuehre npm run build aus..." Importance="high" />
+        <Exec Command="npm run build" WorkingDirectory="..\TLEFrontend\" ContinueOnError="false" />
+        <Message Text="[BuildFrontend] Frontend build erfolgreich!" Importance="high" />
+        
+        <!-- Copy Files -->
+        <Copy SourceFiles="..\TLEFrontend\dist\C2VM.TrafficToolEssentials.mjs" DestinationFolder="$(OutDir)\" />
+        <Copy SourceFiles="..\TLEFrontend\mod.json" DestinationFolder="$(OutDir)\" />
+        <Copy SourceFiles="Properties\Thumbnail.png" DestinationFolder="$(OutDir)\" />
+        <Message Text="[BuildFrontend] Dateien kopiert nach $(OutDir)" Importance="high" />
+    </Target>
+
+    <Target Name="CopyLaneSystem" BeforeTargets="CoreCompile">
+        <ItemGroup>
+            <LaneSystemFiles Include="..\CommonLibraries\LaneSystem\bin\$(Configuration)\$(TargetFramework)\*.*" />
+        </ItemGroup>
+  <!-- Frontend Files (Auto-Generated by sync-vs-project.ps1) -->
+  <ItemGroup>
+    <Content Include="..\TLEFrontend\src\constants.ts" Link="Frontend\src\constants.ts" />
+    <Content Include="..\TLEFrontend\src\context.ts" Link="Frontend\src\context.ts" />
+    <Content Include="..\TLEFrontend\src\engine.ts" Link="Frontend\src\engine.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\de-DE.ts" Link="Frontend\src\localisations\de-DE.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\en-US.ts" Link="Frontend\src\localisations\en-US.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\es-ES.ts" Link="Frontend\src\localisations\es-ES.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\fr-FR.ts" Link="Frontend\src\localisations\fr-FR.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\index.ts" Link="Frontend\src\localisations\index.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\it-IT.ts" Link="Frontend\src\localisations\it-IT.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\ja-JP.ts" Link="Frontend\src\localisations\ja-JP.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\ko-KR.ts" Link="Frontend\src\localisations\ko-KR.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\nl-NL.ts" Link="Frontend\src\localisations\nl-NL.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\pl-PL.ts" Link="Frontend\src\localisations\pl-PL.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\pt-BR.ts" Link="Frontend\src\localisations\pt-BR.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\ru-RU.ts" Link="Frontend\src\localisations\ru-RU.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\zh-HANS.ts" Link="Frontend\src\localisations\zh-HANS.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\zh-HANT.ts" Link="Frontend\src\localisations\zh-HANT.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\zh-HK.ts" Link="Frontend\src\localisations\zh-HK.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\zh-TW.ts" Link="Frontend\src\localisations\zh-TW.ts" />
+    <Content Include="..\TLEFrontend\src\styles\tokens.ts" Link="Frontend\src\styles\tokens.ts" />
+    <Content Include="..\TLEFrontend\src\app.tsx" Link="Frontend\src\app.tsx" />
+    <Content Include="..\TLEFrontend\src\index.tsx" Link="Frontend\src\index.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\button-enhanced.tsx" Link="Frontend\src\components\common\button-enhanced.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\button.tsx" Link="Frontend\src\components\common\button.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\checkbox.tsx" Link="Frontend\src\components\common\checkbox.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\collapsible.tsx" Link="Frontend\src\components\common\collapsible.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\floating-button.tsx" Link="Frontend\src\components\common\floating-button.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\input.tsx" Link="Frontend\src\components\common\input.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\radio.tsx" Link="Frontend\src\components\common\radio.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\range.tsx" Link="Frontend\src\components\common\range.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\scrollable.tsx" Link="Frontend\src\components\common\scrollable.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\tooltip-container.tsx" Link="Frontend\src\components\common\tooltip-container.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\tooltip-icon.tsx" Link="Frontend\src\components\common\tooltip-icon.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\tooltip.tsx" Link="Frontend\src\components\common\tooltip.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\traffic-sign-button.tsx" Link="Frontend\src\components\common\traffic-sign-button.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\bus-side.tsx" Link="Frontend\src\components\common\icons\bus-side.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\bus.tsx" Link="Frontend\src\components\common\icons\bus.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\car.tsx" Link="Frontend\src\components\common\icons\car.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\check.tsx" Link="Frontend\src\components\common\icons\check.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\chevron-down.tsx" Link="Frontend\src\components\common\icons\chevron-down.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\chevron-up.tsx" Link="Frontend\src\components\common\icons\chevron-up.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\delete.tsx" Link="Frontend\src\components\common\icons\delete.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\edit.tsx" Link="Frontend\src\components\common\icons\edit.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\human-male-path.tsx" Link="Frontend\src\components\common\icons\human-male-path.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\human-male.tsx" Link="Frontend\src\components\common\icons\human-male.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\icon-edit.tsx" Link="Frontend\src\components\common\icons\icon-edit.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\icon-monitor.tsx" Link="Frontend\src\components\common\icons\icon-monitor.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\info.tsx" Link="Frontend\src\components\common\icons\info.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\link-variant-off.tsx" Link="Frontend\src\components\common\icons\link-variant-off.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\link-variant.tsx" Link="Frontend\src\components\common\icons\link-variant.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\reset-settings.tsx" Link="Frontend\src\components\common\icons\reset-settings.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\train.tsx" Link="Frontend\src\components\common\icons\train.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\tune.tsx" Link="Frontend\src\components\common\icons\tune.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\visibility-off.tsx" Link="Frontend\src\components\common\icons\visibility-off.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\visibility.tsx" Link="Frontend\src\components\common\icons\visibility.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\walk-path.tsx" Link="Frontend\src\components\common\icons\walk-path.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\walk.tsx" Link="Frontend\src\components\common\icons\walk.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\edge-panel.tsx" Link="Frontend\src\components\custom-phase-tool\edge-panel.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\index.tsx" Link="Frontend\src\components\custom-phase-tool\index.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\lane.tsx" Link="Frontend\src\components\custom-phase-tool\lane.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\sublane-panel.tsx" Link="Frontend\src\components\custom-phase-tool\sublane-panel.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\main-panel\index.tsx" Link="Frontend\src\components\custom-phase-tool\main-panel\index.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\main-panel\item-divider.tsx" Link="Frontend\src\components\custom-phase-tool\main-panel\item-divider.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\main-panel\item.tsx" Link="Frontend\src\components\custom-phase-tool\main-panel\item.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\main-panel\manual-control-panel.tsx" Link="Frontend\src\components\custom-phase-tool\main-panel\manual-control-panel.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\main-panel\sub-panel.tsx" Link="Frontend\src\components\custom-phase-tool\main-panel\sub-panel.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\tooltips\link-phase.tsx" Link="Frontend\src\components\custom-phase-tool\tooltips\link-phase.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\tooltips\options.tsx" Link="Frontend\src\components\custom-phase-tool\tooltips\options.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\tooltips\traffic-sign.tsx" Link="Frontend\src\components\custom-phase-tool\tooltips\traffic-sign.tsx" />
+    <Content Include="..\TLEFrontend\src\components\function-selection\index.tsx" Link="Frontend\src\components\function-selection\index.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\content.tsx" Link="Frontend\src\components\main-panel\content.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\header.tsx" Link="Frontend\src\components\main-panel\header.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\index.tsx" Link="Frontend\src\components\main-panel\index.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\divider.tsx" Link="Frontend\src\components\main-panel\items\divider.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\message.tsx" Link="Frontend\src\components\main-panel\items\message.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\notification.tsx" Link="Frontend\src\components\main-panel\items\notification.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\range.tsx" Link="Frontend\src\components\main-panel\items\range.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\row.tsx" Link="Frontend\src\components\main-panel\items\row.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\title-dim.tsx" Link="Frontend\src\components\main-panel\items\title-dim.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\title.tsx" Link="Frontend\src\components\main-panel\items\title.tsx" />
+    <Content Include="..\TLEFrontend\src\components\tool-tooltip\index.tsx" Link="Frontend\src\components\tool-tooltip\index.tsx" />
+    <Content Include="..\TLEFrontend\package.json" Link="Frontend\package.json" />
+    <Content Include="..\TLEFrontend\webpack.config.js" Link="Frontend\webpack.config.js" />
+    <Content Include="..\TLEFrontend\tsconfig.json" Link="Frontend\tsconfig.json" />
+    <None Include="..\TLEFrontend\dist\C2VM.TrafficToolEssentials.mjs" Link="Frontend\dist\C2VM.TrafficToolEssentials.mjs" />
+  </ItemGroup>
+  <!-- Frontend Files (Auto-Generated by sync-vs-project.ps1) -->
+  <ItemGroup>
+    <Content Include="..\TLEFrontend\src\constants.ts" Link="Frontend\src\constants.ts" />
+    <Content Include="..\TLEFrontend\src\context.ts" Link="Frontend\src\context.ts" />
+    <Content Include="..\TLEFrontend\src\engine.ts" Link="Frontend\src\engine.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\de-DE.ts" Link="Frontend\src\localisations\de-DE.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\en-US.ts" Link="Frontend\src\localisations\en-US.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\es-ES.ts" Link="Frontend\src\localisations\es-ES.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\fr-FR.ts" Link="Frontend\src\localisations\fr-FR.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\index.ts" Link="Frontend\src\localisations\index.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\it-IT.ts" Link="Frontend\src\localisations\it-IT.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\ja-JP.ts" Link="Frontend\src\localisations\ja-JP.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\ko-KR.ts" Link="Frontend\src\localisations\ko-KR.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\nl-NL.ts" Link="Frontend\src\localisations\nl-NL.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\pl-PL.ts" Link="Frontend\src\localisations\pl-PL.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\pt-BR.ts" Link="Frontend\src\localisations\pt-BR.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\ru-RU.ts" Link="Frontend\src\localisations\ru-RU.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\zh-HANS.ts" Link="Frontend\src\localisations\zh-HANS.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\zh-HANT.ts" Link="Frontend\src\localisations\zh-HANT.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\zh-HK.ts" Link="Frontend\src\localisations\zh-HK.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\zh-TW.ts" Link="Frontend\src\localisations\zh-TW.ts" />
+    <Content Include="..\TLEFrontend\src\styles\submenu-tokens.ts" Link="Frontend\src\styles\submenu-tokens.ts" />
+    <Content Include="..\TLEFrontend\src\styles\tokens-v2.ts" Link="Frontend\src\styles\tokens-v2.ts" />
+    <Content Include="..\TLEFrontend\src\styles\tokens.ts" Link="Frontend\src\styles\tokens.ts" />
+    <Content Include="..\TLEFrontend\src\app.tsx" Link="Frontend\src\app.tsx" />
+    <Content Include="..\TLEFrontend\src\index.tsx" Link="Frontend\src\index.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\button-enhanced.tsx" Link="Frontend\src\components\common\button-enhanced.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\button.tsx" Link="Frontend\src\components\common\button.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\checkbox.tsx" Link="Frontend\src\components\common\checkbox.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\collapsible-section.tsx" Link="Frontend\src\components\common\collapsible-section.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\collapsible.tsx" Link="Frontend\src\components\common\collapsible.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\floating-button.tsx" Link="Frontend\src\components\common\floating-button.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\input.tsx" Link="Frontend\src\components\common\input.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\modern-inputs.tsx" Link="Frontend\src\components\common\modern-inputs.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\modern-slider.tsx" Link="Frontend\src\components\common\modern-slider.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\radio.tsx" Link="Frontend\src\components\common\radio.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\range.tsx" Link="Frontend\src\components\common\range.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\scrollable.tsx" Link="Frontend\src\components\common\scrollable.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\submenu-layout.tsx" Link="Frontend\src\components\common\submenu-layout.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\tooltip-container.tsx" Link="Frontend\src\components\common\tooltip-container.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\tooltip-icon.tsx" Link="Frontend\src\components\common\tooltip-icon.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\tooltip.tsx" Link="Frontend\src\components\common\tooltip.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\traffic-sign-button.tsx" Link="Frontend\src\components\common\traffic-sign-button.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\bus-side.tsx" Link="Frontend\src\components\common\icons\bus-side.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\bus.tsx" Link="Frontend\src\components\common\icons\bus.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\car.tsx" Link="Frontend\src\components\common\icons\car.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\check.tsx" Link="Frontend\src\components\common\icons\check.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\chevron-down.tsx" Link="Frontend\src\components\common\icons\chevron-down.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\chevron-up.tsx" Link="Frontend\src\components\common\icons\chevron-up.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\delete.tsx" Link="Frontend\src\components\common\icons\delete.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\edit.tsx" Link="Frontend\src\components\common\icons\edit.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\human-male-path.tsx" Link="Frontend\src\components\common\icons\human-male-path.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\human-male.tsx" Link="Frontend\src\components\common\icons\human-male.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\icon-edit.tsx" Link="Frontend\src\components\common\icons\icon-edit.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\icon-monitor.tsx" Link="Frontend\src\components\common\icons\icon-monitor.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\info.tsx" Link="Frontend\src\components\common\icons\info.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\link-variant-off.tsx" Link="Frontend\src\components\common\icons\link-variant-off.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\link-variant.tsx" Link="Frontend\src\components\common\icons\link-variant.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\reset-settings.tsx" Link="Frontend\src\components\common\icons\reset-settings.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\train.tsx" Link="Frontend\src\components\common\icons\train.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\tune.tsx" Link="Frontend\src\components\common\icons\tune.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\visibility-off.tsx" Link="Frontend\src\components\common\icons\visibility-off.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\visibility.tsx" Link="Frontend\src\components\common\icons\visibility.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\walk-path.tsx" Link="Frontend\src\components\common\icons\walk-path.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\walk.tsx" Link="Frontend\src\components\common\icons\walk.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\edge-panel.tsx" Link="Frontend\src\components\custom-phase-tool\edge-panel.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\index.tsx" Link="Frontend\src\components\custom-phase-tool\index.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\lane.tsx" Link="Frontend\src\components\custom-phase-tool\lane.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\sublane-panel.tsx" Link="Frontend\src\components\custom-phase-tool\sublane-panel.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\main-panel\index.tsx" Link="Frontend\src\components\custom-phase-tool\main-panel\index.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\main-panel\item-divider.tsx" Link="Frontend\src\components\custom-phase-tool\main-panel\item-divider.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\main-panel\item.tsx" Link="Frontend\src\components\custom-phase-tool\main-panel\item.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\main-panel\manual-control-panel.tsx" Link="Frontend\src\components\custom-phase-tool\main-panel\manual-control-panel.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\main-panel\sub-panel.tsx" Link="Frontend\src\components\custom-phase-tool\main-panel\sub-panel.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\tooltips\link-phase.tsx" Link="Frontend\src\components\custom-phase-tool\tooltips\link-phase.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\tooltips\options.tsx" Link="Frontend\src\components\custom-phase-tool\tooltips\options.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\tooltips\traffic-sign.tsx" Link="Frontend\src\components\custom-phase-tool\tooltips\traffic-sign.tsx" />
+    <Content Include="..\TLEFrontend\src\components\function-selection\index.tsx" Link="Frontend\src\components\function-selection\index.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\content.tsx" Link="Frontend\src\components\main-panel\content.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\header.tsx" Link="Frontend\src\components\main-panel\header.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\index.tsx" Link="Frontend\src\components\main-panel\index.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\divider.tsx" Link="Frontend\src\components\main-panel\items\divider.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\message.tsx" Link="Frontend\src\components\main-panel\items\message.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\notification.tsx" Link="Frontend\src\components\main-panel\items\notification.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\range.tsx" Link="Frontend\src\components\main-panel\items\range.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\row.tsx" Link="Frontend\src\components\main-panel\items\row.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\title-dim.tsx" Link="Frontend\src\components\main-panel\items\title-dim.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\title.tsx" Link="Frontend\src\components\main-panel\items\title.tsx" />
+    <Content Include="..\TLEFrontend\src\components\tool-tooltip\index.tsx" Link="Frontend\src\components\tool-tooltip\index.tsx" />
+    <Content Include="..\TLEFrontend\package.json" Link="Frontend\package.json" />
+    <Content Include="..\TLEFrontend\webpack.config.js" Link="Frontend\webpack.config.js" />
+    <Content Include="..\TLEFrontend\tsconfig.json" Link="Frontend\tsconfig.json" />
+    <None Include="..\TLEFrontend\dist\C2VM.TrafficToolEssentials.mjs" Link="Frontend\dist\C2VM.TrafficToolEssentials.mjs" />
+  </ItemGroup>
+  <!-- Frontend Files (Auto-Generated by sync-vs-project.ps1) -->
+  <ItemGroup>
+    <Content Include="..\TLEFrontend\src\constants.ts" Link="Frontend\src\constants.ts" />
+    <Content Include="..\TLEFrontend\src\context.ts" Link="Frontend\src\context.ts" />
+    <Content Include="..\TLEFrontend\src\engine.ts" Link="Frontend\src\engine.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\de-DE.ts" Link="Frontend\src\localisations\de-DE.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\en-US.ts" Link="Frontend\src\localisations\en-US.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\es-ES.ts" Link="Frontend\src\localisations\es-ES.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\fr-FR.ts" Link="Frontend\src\localisations\fr-FR.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\index.ts" Link="Frontend\src\localisations\index.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\it-IT.ts" Link="Frontend\src\localisations\it-IT.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\ja-JP.ts" Link="Frontend\src\localisations\ja-JP.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\ko-KR.ts" Link="Frontend\src\localisations\ko-KR.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\nl-NL.ts" Link="Frontend\src\localisations\nl-NL.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\pl-PL.ts" Link="Frontend\src\localisations\pl-PL.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\pt-BR.ts" Link="Frontend\src\localisations\pt-BR.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\ru-RU.ts" Link="Frontend\src\localisations\ru-RU.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\zh-HANS.ts" Link="Frontend\src\localisations\zh-HANS.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\zh-HANT.ts" Link="Frontend\src\localisations\zh-HANT.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\zh-HK.ts" Link="Frontend\src\localisations\zh-HK.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\zh-TW.ts" Link="Frontend\src\localisations\zh-TW.ts" />
+    <Content Include="..\TLEFrontend\src\styles\submenu-tokens.ts" Link="Frontend\src\styles\submenu-tokens.ts" />
+    <Content Include="..\TLEFrontend\src\styles\tokens-v2.ts" Link="Frontend\src\styles\tokens-v2.ts" />
+    <Content Include="..\TLEFrontend\src\styles\tokens.ts" Link="Frontend\src\styles\tokens.ts" />
+    <Content Include="..\TLEFrontend\src\app.tsx" Link="Frontend\src\app.tsx" />
+    <Content Include="..\TLEFrontend\src\index.tsx" Link="Frontend\src\index.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\button-enhanced.tsx" Link="Frontend\src\components\common\button-enhanced.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\button.tsx" Link="Frontend\src\components\common\button.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\checkbox.tsx" Link="Frontend\src\components\common\checkbox.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\collapsible-section.tsx" Link="Frontend\src\components\common\collapsible-section.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\collapsible.tsx" Link="Frontend\src\components\common\collapsible.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\floating-button.tsx" Link="Frontend\src\components\common\floating-button.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\input.tsx" Link="Frontend\src\components\common\input.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\modern-inputs.tsx" Link="Frontend\src\components\common\modern-inputs.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\modern-slider.tsx" Link="Frontend\src\components\common\modern-slider.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\radio.tsx" Link="Frontend\src\components\common\radio.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\range.tsx" Link="Frontend\src\components\common\range.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\scrollable.tsx" Link="Frontend\src\components\common\scrollable.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\submenu-layout.tsx" Link="Frontend\src\components\common\submenu-layout.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\tooltip-container.tsx" Link="Frontend\src\components\common\tooltip-container.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\tooltip-icon.tsx" Link="Frontend\src\components\common\tooltip-icon.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\tooltip.tsx" Link="Frontend\src\components\common\tooltip.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\traffic-sign-button.tsx" Link="Frontend\src\components\common\traffic-sign-button.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\bus-side.tsx" Link="Frontend\src\components\common\icons\bus-side.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\bus.tsx" Link="Frontend\src\components\common\icons\bus.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\car.tsx" Link="Frontend\src\components\common\icons\car.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\check.tsx" Link="Frontend\src\components\common\icons\check.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\chevron-down.tsx" Link="Frontend\src\components\common\icons\chevron-down.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\chevron-up.tsx" Link="Frontend\src\components\common\icons\chevron-up.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\delete.tsx" Link="Frontend\src\components\common\icons\delete.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\edit.tsx" Link="Frontend\src\components\common\icons\edit.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\human-male-path.tsx" Link="Frontend\src\components\common\icons\human-male-path.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\human-male.tsx" Link="Frontend\src\components\common\icons\human-male.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\icon-edit.tsx" Link="Frontend\src\components\common\icons\icon-edit.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\icon-monitor.tsx" Link="Frontend\src\components\common\icons\icon-monitor.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\info.tsx" Link="Frontend\src\components\common\icons\info.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\link-variant-off.tsx" Link="Frontend\src\components\common\icons\link-variant-off.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\link-variant.tsx" Link="Frontend\src\components\common\icons\link-variant.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\reset-settings.tsx" Link="Frontend\src\components\common\icons\reset-settings.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\train.tsx" Link="Frontend\src\components\common\icons\train.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\tune.tsx" Link="Frontend\src\components\common\icons\tune.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\visibility-off.tsx" Link="Frontend\src\components\common\icons\visibility-off.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\visibility.tsx" Link="Frontend\src\components\common\icons\visibility.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\walk-path.tsx" Link="Frontend\src\components\common\icons\walk-path.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\walk.tsx" Link="Frontend\src\components\common\icons\walk.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\edge-panel.tsx" Link="Frontend\src\components\custom-phase-tool\edge-panel.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\index.tsx" Link="Frontend\src\components\custom-phase-tool\index.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\lane.tsx" Link="Frontend\src\components\custom-phase-tool\lane.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\sublane-panel.tsx" Link="Frontend\src\components\custom-phase-tool\sublane-panel.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\main-panel\index.tsx" Link="Frontend\src\components\custom-phase-tool\main-panel\index.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\main-panel\item-divider.tsx" Link="Frontend\src\components\custom-phase-tool\main-panel\item-divider.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\main-panel\item.tsx" Link="Frontend\src\components\custom-phase-tool\main-panel\item.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\main-panel\manual-control-panel.tsx" Link="Frontend\src\components\custom-phase-tool\main-panel\manual-control-panel.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\main-panel\sub-panel.tsx" Link="Frontend\src\components\custom-phase-tool\main-panel\sub-panel.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\tooltips\link-phase.tsx" Link="Frontend\src\components\custom-phase-tool\tooltips\link-phase.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\tooltips\options.tsx" Link="Frontend\src\components\custom-phase-tool\tooltips\options.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\tooltips\traffic-sign.tsx" Link="Frontend\src\components\custom-phase-tool\tooltips\traffic-sign.tsx" />
+    <Content Include="..\TLEFrontend\src\components\function-selection\index.tsx" Link="Frontend\src\components\function-selection\index.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\content.tsx" Link="Frontend\src\components\main-panel\content.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\header.tsx" Link="Frontend\src\components\main-panel\header.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\index.tsx" Link="Frontend\src\components\main-panel\index.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\divider.tsx" Link="Frontend\src\components\main-panel\items\divider.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\message.tsx" Link="Frontend\src\components\main-panel\items\message.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\notification.tsx" Link="Frontend\src\components\main-panel\items\notification.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\range.tsx" Link="Frontend\src\components\main-panel\items\range.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\row.tsx" Link="Frontend\src\components\main-panel\items\row.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\title-dim.tsx" Link="Frontend\src\components\main-panel\items\title-dim.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\title.tsx" Link="Frontend\src\components\main-panel\items\title.tsx" />
+    <Content Include="..\TLEFrontend\src\components\tool-tooltip\index.tsx" Link="Frontend\src\components\tool-tooltip\index.tsx" />
+    <Content Include="..\TLEFrontend\package.json" Link="Frontend\package.json" />
+    <Content Include="..\TLEFrontend\webpack.config.js" Link="Frontend\webpack.config.js" />
+    <Content Include="..\TLEFrontend\tsconfig.json" Link="Frontend\tsconfig.json" />
+    <None Include="..\TLEFrontend\dist\C2VM.TrafficToolEssentials.mjs" Link="Frontend\dist\C2VM.TrafficToolEssentials.mjs" />
+  </ItemGroup>
+  <!-- Frontend Files (Auto-Generated by sync-vs-project.ps1) -->
+  <ItemGroup>
+    <Content Include="..\TLEFrontend\src\constants.ts" Link="Frontend\src\constants.ts" />
+    <Content Include="..\TLEFrontend\src\context.ts" Link="Frontend\src\context.ts" />
+    <Content Include="..\TLEFrontend\src\engine.ts" Link="Frontend\src\engine.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\de-DE.ts" Link="Frontend\src\localisations\de-DE.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\en-US.ts" Link="Frontend\src\localisations\en-US.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\es-ES.ts" Link="Frontend\src\localisations\es-ES.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\fr-FR.ts" Link="Frontend\src\localisations\fr-FR.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\index.ts" Link="Frontend\src\localisations\index.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\it-IT.ts" Link="Frontend\src\localisations\it-IT.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\ja-JP.ts" Link="Frontend\src\localisations\ja-JP.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\ko-KR.ts" Link="Frontend\src\localisations\ko-KR.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\nl-NL.ts" Link="Frontend\src\localisations\nl-NL.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\pl-PL.ts" Link="Frontend\src\localisations\pl-PL.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\pt-BR.ts" Link="Frontend\src\localisations\pt-BR.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\ru-RU.ts" Link="Frontend\src\localisations\ru-RU.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\zh-HANS.ts" Link="Frontend\src\localisations\zh-HANS.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\zh-HANT.ts" Link="Frontend\src\localisations\zh-HANT.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\zh-HK.ts" Link="Frontend\src\localisations\zh-HK.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\zh-TW.ts" Link="Frontend\src\localisations\zh-TW.ts" />
+    <Content Include="..\TLEFrontend\src\styles\submenu-tokens.ts" Link="Frontend\src\styles\submenu-tokens.ts" />
+    <Content Include="..\TLEFrontend\src\styles\tokens-v2.ts" Link="Frontend\src\styles\tokens-v2.ts" />
+    <Content Include="..\TLEFrontend\src\styles\tokens.ts" Link="Frontend\src\styles\tokens.ts" />
+    <Content Include="..\TLEFrontend\src\app.tsx" Link="Frontend\src\app.tsx" />
+    <Content Include="..\TLEFrontend\src\index.tsx" Link="Frontend\src\index.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\button-enhanced.tsx" Link="Frontend\src\components\common\button-enhanced.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\button.tsx" Link="Frontend\src\components\common\button.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\checkbox.tsx" Link="Frontend\src\components\common\checkbox.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\collapsible-section.tsx" Link="Frontend\src\components\common\collapsible-section.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\collapsible.tsx" Link="Frontend\src\components\common\collapsible.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\floating-button.tsx" Link="Frontend\src\components\common\floating-button.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\input.tsx" Link="Frontend\src\components\common\input.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\modern-inputs.tsx" Link="Frontend\src\components\common\modern-inputs.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\modern-range-wrapper.tsx" Link="Frontend\src\components\common\modern-range-wrapper.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\modern-slider.tsx" Link="Frontend\src\components\common\modern-slider.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\radio.tsx" Link="Frontend\src\components\common\radio.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\range.tsx" Link="Frontend\src\components\common\range.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\scrollable.tsx" Link="Frontend\src\components\common\scrollable.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\submenu-layout.tsx" Link="Frontend\src\components\common\submenu-layout.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\tooltip-container.tsx" Link="Frontend\src\components\common\tooltip-container.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\tooltip-icon.tsx" Link="Frontend\src\components\common\tooltip-icon.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\tooltip.tsx" Link="Frontend\src\components\common\tooltip.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\traffic-sign-button.tsx" Link="Frontend\src\components\common\traffic-sign-button.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\bus-side.tsx" Link="Frontend\src\components\common\icons\bus-side.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\bus.tsx" Link="Frontend\src\components\common\icons\bus.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\car.tsx" Link="Frontend\src\components\common\icons\car.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\check.tsx" Link="Frontend\src\components\common\icons\check.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\chevron-down.tsx" Link="Frontend\src\components\common\icons\chevron-down.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\chevron-up.tsx" Link="Frontend\src\components\common\icons\chevron-up.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\delete.tsx" Link="Frontend\src\components\common\icons\delete.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\edit.tsx" Link="Frontend\src\components\common\icons\edit.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\human-male-path.tsx" Link="Frontend\src\components\common\icons\human-male-path.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\human-male.tsx" Link="Frontend\src\components\common\icons\human-male.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\icon-edit.tsx" Link="Frontend\src\components\common\icons\icon-edit.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\icon-monitor.tsx" Link="Frontend\src\components\common\icons\icon-monitor.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\info.tsx" Link="Frontend\src\components\common\icons\info.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\link-variant-off.tsx" Link="Frontend\src\components\common\icons\link-variant-off.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\link-variant.tsx" Link="Frontend\src\components\common\icons\link-variant.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\reset-settings.tsx" Link="Frontend\src\components\common\icons\reset-settings.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\train.tsx" Link="Frontend\src\components\common\icons\train.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\tune.tsx" Link="Frontend\src\components\common\icons\tune.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\visibility-off.tsx" Link="Frontend\src\components\common\icons\visibility-off.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\visibility.tsx" Link="Frontend\src\components\common\icons\visibility.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\walk-path.tsx" Link="Frontend\src\components\common\icons\walk-path.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\walk.tsx" Link="Frontend\src\components\common\icons\walk.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\edge-panel.tsx" Link="Frontend\src\components\custom-phase-tool\edge-panel.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\index.tsx" Link="Frontend\src\components\custom-phase-tool\index.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\lane.tsx" Link="Frontend\src\components\custom-phase-tool\lane.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\sublane-panel.tsx" Link="Frontend\src\components\custom-phase-tool\sublane-panel.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\main-panel\index.tsx" Link="Frontend\src\components\custom-phase-tool\main-panel\index.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\main-panel\item-divider.tsx" Link="Frontend\src\components\custom-phase-tool\main-panel\item-divider.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\main-panel\item.tsx" Link="Frontend\src\components\custom-phase-tool\main-panel\item.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\main-panel\manual-control-panel.tsx" Link="Frontend\src\components\custom-phase-tool\main-panel\manual-control-panel.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\main-panel\sub-panel.tsx" Link="Frontend\src\components\custom-phase-tool\main-panel\sub-panel.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\tooltips\link-phase.tsx" Link="Frontend\src\components\custom-phase-tool\tooltips\link-phase.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\tooltips\options.tsx" Link="Frontend\src\components\custom-phase-tool\tooltips\options.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\tooltips\traffic-sign.tsx" Link="Frontend\src\components\custom-phase-tool\tooltips\traffic-sign.tsx" />
+    <Content Include="..\TLEFrontend\src\components\function-selection\index.tsx" Link="Frontend\src\components\function-selection\index.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\content.tsx" Link="Frontend\src\components\main-panel\content.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\header.tsx" Link="Frontend\src\components\main-panel\header.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\index.tsx" Link="Frontend\src\components\main-panel\index.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\divider.tsx" Link="Frontend\src\components\main-panel\items\divider.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\message.tsx" Link="Frontend\src\components\main-panel\items\message.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\notification.tsx" Link="Frontend\src\components\main-panel\items\notification.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\range.tsx" Link="Frontend\src\components\main-panel\items\range.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\row.tsx" Link="Frontend\src\components\main-panel\items\row.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\title-dim.tsx" Link="Frontend\src\components\main-panel\items\title-dim.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\title.tsx" Link="Frontend\src\components\main-panel\items\title.tsx" />
+    <Content Include="..\TLEFrontend\src\components\tool-tooltip\index.tsx" Link="Frontend\src\components\tool-tooltip\index.tsx" />
+    <Content Include="..\TLEFrontend\package.json" Link="Frontend\package.json" />
+    <Content Include="..\TLEFrontend\webpack.config.js" Link="Frontend\webpack.config.js" />
+    <Content Include="..\TLEFrontend\tsconfig.json" Link="Frontend\tsconfig.json" />
+    <None Include="..\TLEFrontend\dist\C2VM.TrafficToolEssentials.mjs" Link="Frontend\dist\C2VM.TrafficToolEssentials.mjs" />
+  </ItemGroup>
+  <!-- Frontend Files (Auto-Generated by sync-vs-project.ps1) -->
+  <ItemGroup>
+    <Content Include="..\TLEFrontend\src\constants.ts" Link="Frontend\src\constants.ts" />
+    <Content Include="..\TLEFrontend\src\context.ts" Link="Frontend\src\context.ts" />
+    <Content Include="..\TLEFrontend\src\engine.ts" Link="Frontend\src\engine.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\de-DE.ts" Link="Frontend\src\localisations\de-DE.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\en-US.ts" Link="Frontend\src\localisations\en-US.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\es-ES.ts" Link="Frontend\src\localisations\es-ES.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\fr-FR.ts" Link="Frontend\src\localisations\fr-FR.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\index.ts" Link="Frontend\src\localisations\index.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\it-IT.ts" Link="Frontend\src\localisations\it-IT.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\ja-JP.ts" Link="Frontend\src\localisations\ja-JP.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\ko-KR.ts" Link="Frontend\src\localisations\ko-KR.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\nl-NL.ts" Link="Frontend\src\localisations\nl-NL.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\pl-PL.ts" Link="Frontend\src\localisations\pl-PL.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\pt-BR.ts" Link="Frontend\src\localisations\pt-BR.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\ru-RU.ts" Link="Frontend\src\localisations\ru-RU.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\zh-HANS.ts" Link="Frontend\src\localisations\zh-HANS.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\zh-HANT.ts" Link="Frontend\src\localisations\zh-HANT.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\zh-HK.ts" Link="Frontend\src\localisations\zh-HK.ts" />
+    <Content Include="..\TLEFrontend\src\localisations\zh-TW.ts" Link="Frontend\src\localisations\zh-TW.ts" />
+    <Content Include="..\TLEFrontend\src\styles\submenu-tokens.ts" Link="Frontend\src\styles\submenu-tokens.ts" />
+    <Content Include="..\TLEFrontend\src\styles\tokens-v2.ts" Link="Frontend\src\styles\tokens-v2.ts" />
+    <Content Include="..\TLEFrontend\src\styles\tokens.ts" Link="Frontend\src\styles\tokens.ts" />
+    <Content Include="..\TLEFrontend\src\app.tsx" Link="Frontend\src\app.tsx" />
+    <Content Include="..\TLEFrontend\src\index.tsx" Link="Frontend\src\index.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\button-enhanced.tsx" Link="Frontend\src\components\common\button-enhanced.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\button.tsx" Link="Frontend\src\components\common\button.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\checkbox.tsx" Link="Frontend\src\components\common\checkbox.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\collapsible-section.tsx" Link="Frontend\src\components\common\collapsible-section.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\collapsible.tsx" Link="Frontend\src\components\common\collapsible.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\floating-button.tsx" Link="Frontend\src\components\common\floating-button.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\input.tsx" Link="Frontend\src\components\common\input.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\modern-inputs.tsx" Link="Frontend\src\components\common\modern-inputs.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\modern-range-wrapper.tsx" Link="Frontend\src\components\common\modern-range-wrapper.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\modern-slider.tsx" Link="Frontend\src\components\common\modern-slider.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\radio.tsx" Link="Frontend\src\components\common\radio.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\range.tsx" Link="Frontend\src\components\common\range.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\scrollable.tsx" Link="Frontend\src\components\common\scrollable.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\submenu-layout.tsx" Link="Frontend\src\components\common\submenu-layout.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\tooltip-container.tsx" Link="Frontend\src\components\common\tooltip-container.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\tooltip-icon.tsx" Link="Frontend\src\components\common\tooltip-icon.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\tooltip.tsx" Link="Frontend\src\components\common\tooltip.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\traffic-sign-button.tsx" Link="Frontend\src\components\common\traffic-sign-button.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\bus-side.tsx" Link="Frontend\src\components\common\icons\bus-side.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\bus.tsx" Link="Frontend\src\components\common\icons\bus.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\car.tsx" Link="Frontend\src\components\common\icons\car.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\check.tsx" Link="Frontend\src\components\common\icons\check.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\chevron-down.tsx" Link="Frontend\src\components\common\icons\chevron-down.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\chevron-up.tsx" Link="Frontend\src\components\common\icons\chevron-up.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\delete.tsx" Link="Frontend\src\components\common\icons\delete.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\edit.tsx" Link="Frontend\src\components\common\icons\edit.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\human-male-path.tsx" Link="Frontend\src\components\common\icons\human-male-path.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\human-male.tsx" Link="Frontend\src\components\common\icons\human-male.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\icon-edit.tsx" Link="Frontend\src\components\common\icons\icon-edit.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\icon-monitor.tsx" Link="Frontend\src\components\common\icons\icon-monitor.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\info.tsx" Link="Frontend\src\components\common\icons\info.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\link-variant-off.tsx" Link="Frontend\src\components\common\icons\link-variant-off.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\link-variant.tsx" Link="Frontend\src\components\common\icons\link-variant.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\reset-settings.tsx" Link="Frontend\src\components\common\icons\reset-settings.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\train.tsx" Link="Frontend\src\components\common\icons\train.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\tune.tsx" Link="Frontend\src\components\common\icons\tune.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\visibility-off.tsx" Link="Frontend\src\components\common\icons\visibility-off.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\visibility.tsx" Link="Frontend\src\components\common\icons\visibility.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\walk-path.tsx" Link="Frontend\src\components\common\icons\walk-path.tsx" />
+    <Content Include="..\TLEFrontend\src\components\common\icons\walk.tsx" Link="Frontend\src\components\common\icons\walk.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\edge-panel.tsx" Link="Frontend\src\components\custom-phase-tool\edge-panel.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\index.tsx" Link="Frontend\src\components\custom-phase-tool\index.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\lane.tsx" Link="Frontend\src\components\custom-phase-tool\lane.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\sublane-panel.tsx" Link="Frontend\src\components\custom-phase-tool\sublane-panel.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\main-panel\index.tsx" Link="Frontend\src\components\custom-phase-tool\main-panel\index.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\main-panel\item-divider.tsx" Link="Frontend\src\components\custom-phase-tool\main-panel\item-divider.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\main-panel\item.tsx" Link="Frontend\src\components\custom-phase-tool\main-panel\item.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\main-panel\manual-control-panel.tsx" Link="Frontend\src\components\custom-phase-tool\main-panel\manual-control-panel.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\main-panel\sub-panel.tsx" Link="Frontend\src\components\custom-phase-tool\main-panel\sub-panel.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\tooltips\link-phase.tsx" Link="Frontend\src\components\custom-phase-tool\tooltips\link-phase.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\tooltips\options.tsx" Link="Frontend\src\components\custom-phase-tool\tooltips\options.tsx" />
+    <Content Include="..\TLEFrontend\src\components\custom-phase-tool\tooltips\traffic-sign.tsx" Link="Frontend\src\components\custom-phase-tool\tooltips\traffic-sign.tsx" />
+    <Content Include="..\TLEFrontend\src\components\function-selection\index.tsx" Link="Frontend\src\components\function-selection\index.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\content.tsx" Link="Frontend\src\components\main-panel\content.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\header.tsx" Link="Frontend\src\components\main-panel\header.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\index.tsx" Link="Frontend\src\components\main-panel\index.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\divider.tsx" Link="Frontend\src\components\main-panel\items\divider.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\message.tsx" Link="Frontend\src\components\main-panel\items\message.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\notification.tsx" Link="Frontend\src\components\main-panel\items\notification.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\range.tsx" Link="Frontend\src\components\main-panel\items\range.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\row.tsx" Link="Frontend\src\components\main-panel\items\row.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\title-dim.tsx" Link="Frontend\src\components\main-panel\items\title-dim.tsx" />
+    <Content Include="..\TLEFrontend\src\components\main-panel\items\title.tsx" Link="Frontend\src\components\main-panel\items\title.tsx" />
+    <Content Include="..\TLEFrontend\src\components\tool-tooltip\index.tsx" Link="Frontend\src\components\tool-tooltip\index.tsx" />
+    <Content Include="..\TLEFrontend\package.json" Link="Frontend\package.json" />
+    <Content Include="..\TLEFrontend\webpack.config.js" Link="Frontend\webpack.config.js" />
+    <Content Include="..\TLEFrontend\tsconfig.json" Link="Frontend\tsconfig.json" />
+    <None Include="..\TLEFrontend\dist\C2VM.TrafficToolEssentials.mjs" Link="Frontend\dist\C2VM.TrafficToolEssentials.mjs" />
+  </ItemGroup>
+        <Copy SourceFiles="@(LaneSystemFiles)" DestinationFolder="$(OutDir)\" />
+    </Target>
+
+    <PropertyGroup Condition="'$(Verbosity)' == 'Verbose'">
+        <DefineConstants>$(DefineConstants);VERBOSITY_VERBOSE</DefineConstants>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Verbosity)' == 'Debug'">
+        <DefineConstants>$(DefineConstants);VERBOSITY_VERBOSE;VERBOSITY_DEBUG</DefineConstants>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(ShowCanaryBuildWarning)' == 'true'">
+        <DefineConstants>$(DefineConstants);SHOW_CANARY_BUILD_WARNING</DefineConstants>
+    </PropertyGroup>
+</Project>
+
+
+
+
+
